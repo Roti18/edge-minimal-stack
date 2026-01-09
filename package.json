@@ -1,0 +1,41 @@
+{
+    "name": "edge-minimal-stack",
+    "version": "1.0.0",
+    "description": "Minimal, ultra-light, low-latency backend with dual runtime support",
+    "type": "module",
+    "scripts": {
+        "dev": "cross-env NODE_ENV=development tsx watch src/dev-server.ts",
+        "dev:vercel": "vercel dev",
+        "build": "tsc --noEmit",
+        "deploy": "vercel --prod",
+        "type-check": "tsc --noEmit",
+        "check": "npm run type-check && npm audit --omit=dev",
+        "db:init": "node scripts/db-init.js",
+        "db:migrate": "node scripts/db-migrate.js",
+        "db:reset": "node scripts/db-reset.js",
+        "db:query": "node scripts/db-query.js",
+        "test": "vitest",
+        "test:unit": "vitest run --exclude tests/integration/**",
+        "test:integration": "vitest run tests/integration"
+    },
+    "dependencies": {
+        "@libsql/client": "^0.5.0",
+        "hono": "^4.0.0",
+        "@hono/node-server": "^1.8.0",
+        "googleapis": "^128.0.0",
+        "imagekit": "^5.0.0"
+    },
+    "devDependencies": {
+        "@types/node": "^20.11.0",
+        "typescript": "^5.3.3",
+        "vercel": "^37.0.0",
+        "tsx": "^4.7.0",
+        "better-sqlite3": "^9.0.0",
+        "@types/better-sqlite3": "^7.6.0",
+        "vitest": "^1.2.0",
+        "cross-env": "^7.0.3"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    }
+}

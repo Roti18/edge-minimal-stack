@@ -1,0 +1,14 @@
+node_modules
+.vercel
+.env
+.env.test
+dist
+*.log
+.DS_Store
+
+# Local database files
+/data/*.db
+/data/*.db-*
+/data/*.db-journal
+/data/*.db-shm
+/data/*.db-wal
