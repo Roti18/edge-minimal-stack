@@ -4,6 +4,7 @@
  */
 
 import { Hono } from 'hono';
+import { logger } from 'hono/logger';
 import { serve } from '@hono/node-server';
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -20,6 +21,9 @@ import { parseCookies } from './shared/utils/cookies.js';
 import { COOKIE_NAME } from './shared/constants.js';
 
 const app = new Hono();
+
+// Global Middleware
+app.use('*', logger());
 
 // Data API (simulating edge)
 app.get('/data/app', async (c) => {
@@ -188,12 +192,11 @@ app.get('/health', (c) => {
 
 const port = Number(process.env.PORT) || 3000;
 
-console.log(`Dev Server running on http://localhost:${port}`);
-console.log(`API Mode: Development (tsx watch)`);
-console.log(`\nEndpoints:`);
-console.log(`   Data API: http://localhost:${port}/data/*`);
-console.log(`   Auth API: http://localhost:${port}/auth/*`);
-console.log(`\nHot reload enabled - edit and save to restart\n`);
+console.log(`\n\x1b[32m[EdgeStack]\x1b[0m Dev Server is ready!`);
+console.log(`\x1b[34m[Local]\x1b[0m http://localhost:${port}`);
+console.log(`\x1b[34m[Docs]\x1b[0m http://localhost:${port}/docs`);
+console.log(`\n\x1b[33m[Mode]\x1b[0m Hot reload enabled (tsx)`);
+console.log(`\x1b[33m[Logs]\x1b[0m Request logging active\n`);
 
 serve({
     fetch: app.fetch,
