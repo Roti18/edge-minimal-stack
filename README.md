@@ -1,5 +1,7 @@
 # Edge-Minimal Backend Stack
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+
 A **production-ready**, minimal backend boilerplate optimized for ultra-low latency on Vercel's edge network.
 
 ## Features
@@ -262,7 +264,7 @@ This boilerplate is ideal for:
 
 ## License
 
-MIT - Use freely for any project.
+This project is licensed under the [MIT License](./LICENSE). Use freely for any project.
 
 ---
 
