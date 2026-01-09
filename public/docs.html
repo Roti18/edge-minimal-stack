@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation | EdgeStack</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            scroll-behavior: smooth;
+            background: #000000;
+        }
+
+        pre,
+        code {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .sidebar {
+            border-right: 1px solid #111;
+            background: #000000;
+        }
+
+        .sidebar-link {
+            border-left: 2px solid transparent;
+            transition: all 0.2s;
+            color: #555;
+        }
+
+        .sidebar-link.active {
+            color: #ffffff;
+            border-left: 2px solid #ff3e3e;
+            background: rgba(255, 62, 62, 0.05);
+            font-weight: 700;
+        }
+
+        .sidebar-link:hover:not(.active) {
+            color: #888;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .doc-content h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 2.5rem;
+            letter-spacing: -0.04em;
+            line-height: 1.1;
+        }
+
+        .doc-content h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-top: 5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid #111;
+            padding-bottom: 1rem;
+        }
+
+        .doc-content p {
+            color: #94a3b8;
+            line-height: 1.8;
+            margin-bottom: 1.5rem;
+            font-size: 1.15rem;
+        }
+
+        .code-block {
+            background: #050505;
+            color: #cbd5e1;
+            padding: 2rem;
+            overflow-x: auto;
+            margin-bottom: 2.5rem;
+            border-radius: 1.25rem;
+            font-size: 0.95rem;
+            border: 1px solid #111;
+            position: relative;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 3px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #000000;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #222;
+            border-radius: 10px;
+        }
+
+        section {
+            scroll-margin-top: 100px;
+        }
+
+        .note {
+            background: rgba(255, 62, 62, 0.03);
+            border-left: 3px solid #ff3e3e;
+            padding: 1.5rem;
+            border-radius: 0 1rem 1rem 0;
+            margin-bottom: 3rem;
+            border: 1px solid rgba(255, 62, 62, 0.05);
+        }
+
+        aside::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="bg-[#000000] text-white min-h-screen">
+    <!-- Top Header -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-[#000000]/80 backdrop-blur-lg border-b border-[#111]">
+        <div class="max-w-8xl mx-auto px-6 h-16 flex justify-between items-center">
+            <a href="/" class="flex items-center space-x-2 group">
+                <div
+                    class="w-8 h-8 bg-white rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform">
+                    <span class="text-black font-bold italic text-lg">E<span class="text-[#ff3e3e]">.</span></span>
+                </div>
+                <span class="text-lg font-bold text-white tracking-tight">EdgeStack</span>
+            </a>
+            <div class="flex items-center space-x-6">
+                <a href="https://github.com/Roti18/edge-minimal-stack"
+                    class="text-zinc-500 hover:text-white transition-colors text-[11px] font-bold uppercase tracking-widest hidden sm:block">GitHub</a>
+                <a href="/data/app"
+                    class="bg-white text-black px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-zinc-200 transition-colors">API
+                    Demo</a>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex pt-16 h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside class="w-60 h-full border-r border-[#111] hidden lg:block overflow-y-auto">
+            <div class="p-8">
+                <nav id="sidebar-nav" class="space-y-2">
+                    <p class="text-[9px] uppercase tracking-[0.2em] text-zinc-600 font-extrabold mb-4 ml-4">Start</p>
+                    <a href="#introduction"
+                        class="sidebar-link block px-4 py-2 text-[13px] rounded-r-lg">Introduction</a>
+                    <a href="#setup" class="sidebar-link block px-4 py-2 text-[13px] rounded-r-lg">Initial Setup</a>
+
+                    <p class="text-[9px] uppercase tracking-[0.2em] text-zinc-600 font-extrabold mb-4 mt-10 ml-4">Core
+                    </p>
+                    <a href="#authentication"
+                        class="sidebar-link block px-4 py-2 text-[13px] rounded-r-lg">Authentication</a>
+                    <a href="#edge-data" class="sidebar-link block px-4 py-2 text-[13px] rounded-r-lg">Edge Data API</a>
+                    <a href="#database" class="sidebar-link block px-4 py-2 text-[13px] rounded-r-lg">Database</a>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto scroll-smooth">
+            <div class="max-w-4xl px-8 py-16 md:px-16 lg:px-24 mx-auto doc-content">
+
+                <section id="introduction">
+                    <h1>Introduction</h1>
+                    <p><strong>EdgeStack</strong> is a minimalist, high-performance backend boilerplate for the modern
+                        web.
+                        Built with <span class="text-zinc-300 font-bold border-b border-[#ff3e3e]">Hono</span>, it
+                        prioritizes
+                        absolute speed.</p>
+                    <div class="note">
+                        <p class="text-white font-bold mb-1 text-base tracking-tight">Vercel Runtime Separation</p>
+                        <p class="text-zinc-500 text-sm italic">"Complex logic stays on Node.js, hot data stays on the
+                            Edge."
+                        </p>
+                    </div>
+                </section>
+
+                <section id="setup">
+                    <h2>Initial Setup</h2>
+                    <p>Ready to deploy in less than 2 minutes.</p>
+                    <div class="code-block">
+                        <pre><span class="text-zinc-700"># 1. Clone</span>
+git clone https://github.com/Roti18/edge-minimal-stack.git
+
+<span class="text-zinc-700"># 2. Install</span>
+npm install
+
+<span class="text-zinc-700"># 3. Environment</span>
+cp .env.example .env
+
+<span class="text-zinc-700"># 4. Develop</span>
+npm run dev</pre>
+                    </div>
+                </section>
+
+                <section id="authentication">
+                    <h2>Authentication</h2>
+                    <p>Google OAuth 2.0 with <span class="text-zinc-300">stateless</span> signatures and HMAC-signed
+                        sessions.
+                    </p>
+                    <div class="code-block">
+                        <pre><span class="text-zinc-700">// Auth Endpoints</span>
+<span class="text-[#ff3e3e]">GET</span>  /auth/google
+<span class="text-[#ff3e3e]">GET</span>  /auth/google/callback
+<span class="text-[#ff3e3e]">POST</span> /auth/logout</pre>
+                    </div>
+                </section>
+
+                <section id="edge-data">
+                    <h2>Edge Data API</h2>
+                    <p>Globally replicated Edge isolates for sub-10ms response times.</p>
+                    <div class="code-block">
+                        <pre><span class="text-[#ff3e3e]">GET</span> /api/data/config
+
+<span class="text-zinc-700">/* Performance Header */</span>
+<span class="text-zinc-500">Cache-Control</span>: <span class="text-emerald-600">s-maxage=300</span></pre>
+                    </div>
+                </section>
+
+                <section id="database">
+                    <h2>Database (Turso)</h2>
+                    <p>Distributed SQLite for minimal data latency.</p>
+                    <div class="code-block">
+                        <pre>npm run db:init    <span class="text-zinc-700">// Local SQLite</span>
+npm run db:migrate <span class="text-zinc-700">// Sync Schema</span></pre>
+                    </div>
+                </section>
+
+                <footer
+                    class="mt-40 pt-10 border-t border-[#111] text-zinc-700 text-[11px] font-bold tracking-widest flex justify-between items-center">
+                    <p>© 2026 EDGESTACK</p>
+                    <div class="flex space-x-8">
+                        <a href="https://github.com/Roti18/edge-minimal-stack"
+                            class="hover:text-zinc-500 transition-colors uppercase">GitHub</a>
+                    </div>
+                </footer>
+        </main>
+
+    </div>
+    </main>
+    </div>
+
+    <script>
+        const sections = document.querySelectorAll('section');
+        const navLinks = document.querySelectorAll('.sidebar-link');
+        const sidebar = document.querySelector('aside');
+        const mainContent = document.querySelector('main');
+
+        const observerOptions = {
+            root: mainContent,
+            rootMargin: '-20% 0px -70% 0px',
+            threshold: 0
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const id = entry.target.getAttribute('id');
+                    navLinks.forEach(link => {
+                        if (link.getAttribute('href') === `#${id}`) {
+                            navLinks.forEach(l => l.classList.remove('active'));
+                            link.classList.add('active');
+                            const linkRect = link.getBoundingClientRect();
+                            const sidebarRect = sidebar.getBoundingClientRect();
+                            if (linkRect.top < sidebarRect.top + 40 || linkRect.bottom > sidebarRect.bottom - 40) {
+                                link.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }
+                        }
+                    });
+                }
+            });
+        }, observerOptions);
+
+        sections.forEach(section => observer.observe(section));
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetId = link.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+                mainContent.scrollTo({ top: targetElement.offsetTop - 40, behavior: 'smooth' });
+                history.pushState(null, null, targetId);
+            });
+        });
+    </script>
+</body>
+
+</html>

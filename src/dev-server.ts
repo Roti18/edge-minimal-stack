@@ -5,6 +5,12 @@
 
 import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = join(__filename, '..');
 
 // Import services
 import { getAppConfig, getFeatureFlags } from './services/data/config.service.js';
@@ -62,6 +68,17 @@ app.get('/data/flags', async (c) => {
     } catch (error) {
         return c.json({ success: false, error: 'Failed to fetch flags', timestamp: Date.now() }, 500);
     }
+});
+
+app.get('/data/ping', async (c) => {
+    return c.json({
+        success: true,
+        data: {
+            message: 'pong',
+            region: 'local',
+        },
+        timestamp: Date.now(),
+    });
 });
 
 // Auth API (simulating Node.js runtime)
@@ -141,16 +158,28 @@ app.post('/auth/logout', async (c) => {
     });
 });
 
-// Health check
+// Landing & Docs
 app.get('/', (c) => {
+    const html = readFileSync(join(__dirname, '../public/index.html'), 'utf-8');
+    return c.html(html);
+});
+
+app.get('/docs', (c) => {
+    const html = readFileSync(join(__dirname, '../public/docs.html'), 'utf-8');
+    return c.html(html);
+});
+
+// Health check
+app.get('/health', (c) => {
     return c.json({
         success: true,
         data: {
             message: 'Edge Minimal Stack - Dev Server',
             mode: 'development',
             endpoints: {
-                data: ['/data/app', '/data/config', '/data/flags'],
+                data: ['/data/app', '/data/config', '/data/flags', '/data/ping'],
                 auth: ['/auth/google', '/auth/google/callback', '/auth/session', '/auth/logout'],
+                pages: ['/', '/docs'],
             },
         },
         timestamp: Date.now(),
