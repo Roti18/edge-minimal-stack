@@ -9,10 +9,7 @@ const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 
 if (!REDIS_URL || !REDIS_TOKEN) {
-    if (process.env.NODE_ENV === 'production') {
-        throw new Error('UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN must be set in production');
-    }
-    console.warn('[Redis] Configuration missing. Distributed features will be limited.');
+    console.warn('[Redis] Configuration missing. Distributed features (Rate limiting, Config, Sessions) will be disabled or use fallbacks.');
 }
 
 export const redis = new Redis({
