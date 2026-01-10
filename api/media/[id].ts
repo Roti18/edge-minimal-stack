@@ -1,31 +1,40 @@
+import { getMediaById } from '@/modules/media/media.service';
+import { jsonResponse } from '@/shared/utils/response';
+
+export const runtime = 'edge';
+
 /**
  * GET /api/media/:id
  * Get media metadata by ID
- * Edge runtime (metadata only, no file serving)
  */
-
-export const runtime = 'edge';
-import { getMediaById } from '@/services/media/media.service';
-import { errorResponse, jsonResponse } from '@/shared/utils/response';
-
-interface RouteContext {
-    params: { id: string };
-}
-
 export async function GET(
-    request: Request,
-    context: RouteContext
+    _request: Request,
+    { params }: { params: { id: string } }
 ): Promise<Response> {
-    const { id } = context.params;
+    const { id } = params;
 
     if (!id) {
-        return errorResponse('Media ID is required', 400);
+        return new Response(JSON.stringify({
+            success: false,
+            error: 'Media ID required',
+            timestamp: Date.now()
+        }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
 
     const media = await getMediaById(id);
 
     if (!media) {
-        return errorResponse('Media not found', 404);
+        return new Response(JSON.stringify({
+            success: false,
+            error: 'Media not found',
+            timestamp: Date.now()
+        }), {
+            status: 404,
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
 
     return jsonResponse(media);

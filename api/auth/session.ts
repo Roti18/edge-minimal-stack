@@ -3,35 +3,32 @@
  * Validates and returns current session data
  */
 
-import { validateSession } from '@/services/auth/session.service';
+import { validateSession } from '@/modules/auth/session.service';
 import { parseCookies } from '@/shared/utils/cookies';
-import { jsonResponse, errorResponse } from '@/shared/utils/response';
 import { COOKIE_NAME } from '@/shared/constants';
+import { createHandler } from '@/core/handler';
 
 export { runtime } from './_runtime';
 
-export async function GET(request: Request): Promise<Response> {
-    try {
-        const cookies = parseCookies(request.headers.get('cookie'));
+export const GET = createHandler({
+    handler: async ({ req }) => {
+        const cookies = parseCookies(req.headers.get('cookie') || '');
         const sessionCookie = cookies[COOKIE_NAME];
 
         if (!sessionCookie) {
-            return errorResponse('Not authenticated', 401);
+            throw new Error('Not authenticated');
         }
 
-        const session = validateSession(sessionCookie);
+        const session = await validateSession(sessionCookie);
 
         if (!session) {
-            return errorResponse('Invalid or expired session', 401);
+            throw new Error('Invalid or expired session');
         }
 
-        return jsonResponse({
+        return {
             userId: session.userId,
             email: session.email,
             expiresAt: session.expiresAt,
-        });
-    } catch (error) {
-        console.error('Session validation error:', error);
-        return errorResponse('Session validation failed', 500);
+        };
     }
-}
+});

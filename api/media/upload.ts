@@ -5,7 +5,7 @@
  */
 
 export { runtime } from './_runtime';
-import { handleMediaUpload } from '@/services/media/media.service';
+import { handleMediaUpload } from '@/modules/media/media.service';
 import { errorResponse, jsonResponse } from '@/shared/utils/response';
 
 export async function POST(request: Request): Promise<Response> {

@@ -3,36 +3,36 @@
  * Handles Google OAuth callback and creates session
  */
 
-import { handleGoogleCallback } from '@/services/auth/oauth.service';
-import { createSession } from '@/services/auth/session.service';
+import { handleGoogleCallback } from '@/modules/auth/oauth.service';
+import { createSession } from '@/modules/auth/session.service';
 import { parseCookies } from '@/shared/utils/cookies';
-import { errorResponse } from '@/shared/utils/response';
+import { createHandler } from '@/core/handler';
 
 export { runtime } from '../_runtime';
 
-export async function GET(request: Request): Promise<Response> {
-    try {
-        const url = new URL(request.url);
+export const GET = createHandler({
+    handler: async ({ req }) => {
+        const url = new URL(req.url);
         const code = url.searchParams.get('code');
         const state = url.searchParams.get('state');
 
         // Validate state parameter (CSRF protection)
-        const cookies = parseCookies(request.headers.get('cookie'));
+        const cookies = parseCookies(req.headers.get('cookie'));
         const storedState = cookies['oauth_state'];
 
         if (!state || !storedState || state !== storedState) {
-            return errorResponse('Invalid state parameter', 400);
+            throw new Error('Invalid state parameter');
         }
 
         if (!code) {
-            return errorResponse('Missing authorization code', 400);
+            throw new Error('Missing authorization code');
         }
 
         // Exchange code for user
         const user = await handleGoogleCallback(code);
 
         // Create session
-        const sessionCookie = createSession(user.id, user.email);
+        const sessionCookie = await createSession(user.id, user.email);
 
         // Redirect to frontend with session cookie
         const redirectUrl = process.env.ALLOWED_ORIGIN || 'http://localhost:3000';
@@ -44,8 +44,5 @@ export async function GET(request: Request): Promise<Response> {
                 'Set-Cookie': sessionCookie,
             },
         });
-    } catch (error) {
-        console.error('OAuth callback error:', error);
-        return errorResponse('Authentication failed', 500);
     }
-}
+});

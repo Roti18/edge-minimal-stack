@@ -1,6 +1,6 @@
 /**
  * Auth API Runtime Configuration
- * All auth routes MUST re-export this to use Node.js runtime
+ * All auth routes will now use Edge Runtime for zero cold start.
  */
 
-export const runtime = 'nodejs';
+export const runtime = 'edge';

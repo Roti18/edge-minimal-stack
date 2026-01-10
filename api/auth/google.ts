@@ -3,7 +3,7 @@
  * Initiates Google OAuth flow with state parameter for CSRF protection
  */
 
-import { initiateGoogleOAuth } from '@/services/auth/oauth.service';
+import { initiateGoogleOAuth } from '@/modules/auth/oauth.service';
 
 export { runtime } from './_runtime';
 

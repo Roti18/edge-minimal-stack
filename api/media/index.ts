@@ -5,7 +5,7 @@
  */
 
 export const runtime = 'edge';
-import { getAllMedia } from '@/services/media/media.service';
+import { getAllMedia } from '@/modules/media/media.service';
 import { jsonResponse } from '@/shared/utils/response';
 
 export async function GET(request: Request): Promise<Response> {
