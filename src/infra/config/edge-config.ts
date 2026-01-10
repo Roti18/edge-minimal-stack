@@ -1,16 +1,16 @@
-import { get } from '@vercel/edge-config';
+import { redis } from '../redis/client';
 
 /**
- * Vercel Edge Config Wrapper
- * Used for ultra-fast reading of feature flags and global settings.
+ * App Configuration Wrapper (Now using Upstash Redis)
+ * Used for fast reading of feature flags and global settings.
  */
 
 export async function getConfig<T>(key: string, defaultValue: T): Promise<T> {
     try {
-        const val = await get(key);
+        const val = await redis.get(key);
         return (val as T) ?? defaultValue;
     } catch (error) {
-        console.warn(`[EdgeConfig] Failed to fetch key: ${key}, using default.`);
+        console.warn(`[Config] Failed to fetch key: ${key}, using default.`);
         return defaultValue;
     }
 }
