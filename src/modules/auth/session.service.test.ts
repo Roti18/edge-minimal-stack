@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createSession, validateSession, destroySession } from '@/services/auth/session.service';
+import { createSession, validateSession, destroySession } from '@/modules/auth/session.service';
 
 describe('Session Service', () => {
     describe('createSession', () => {
