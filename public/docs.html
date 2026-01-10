@@ -129,7 +129,7 @@
             <div class="flex items-center space-x-6">
                 <a href="https://github.com/Roti18/edge-minimal-stack"
                     class="text-zinc-500 hover:text-white transition-colors text-[11px] font-bold uppercase tracking-widest hidden sm:block">GitHub</a>
-                <a href="/data/app"
+                <a href="/data/config"
                     class="bg-white text-black px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-zinc-200 transition-colors">API
                     Demo</a>
             </div>
@@ -202,7 +202,9 @@ npm run dev</pre>
                         <pre><span class="text-zinc-700">// Auth Endpoints</span>
 <span class="text-[#ff3e3e]">GET</span>  /auth/google
 <span class="text-[#ff3e3e]">GET</span>  /auth/google/callback
-<span class="text-[#ff3e3e]">POST</span> /auth/logout</pre>
+<span class="text-[#ff3e3e]">GET</span>  /auth/session
+<span class="text-[#ff3e3e]">POST</span> /auth/logout
+<span class="text-[#ff3e3e]">POST</span> /auth/login</pre>
                     </div>
                 </section>
 
@@ -210,7 +212,9 @@ npm run dev</pre>
                     <h2>Edge Data API</h2>
                     <p>Globally replicated Edge isolates for sub-10ms response times.</p>
                     <div class="code-block">
-                        <pre><span class="text-[#ff3e3e]">GET</span> /api/data/config
+                        <pre><span class="text-[#ff3e3e]">GET</span> /data/config
+<span class="text-[#ff3e3e]">GET</span> /data/flags
+<span class="text-[#ff3e3e]">GET</span> /media/:id
 
 <span class="text-zinc-700">/* Performance Header */</span>
 <span class="text-zinc-500">Cache-Control</span>: <span class="text-emerald-600">s-maxage=300</span></pre>

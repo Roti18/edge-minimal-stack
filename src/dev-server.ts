@@ -1,6 +1,5 @@
 /**
- * Development Server with tsx
- * Quick iteration without Vercel CLI overhead
+ * Development Server (Edge Stack Optimized)
  */
 
 import { Hono } from 'hono';
@@ -13,10 +12,10 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = join(__filename, '..');
 
-// Import services
-import { getAppConfig, getFeatureFlags } from './services/data/config.service.js';
-import { initiateGoogleOAuth, handleGoogleCallback } from './services/auth/oauth.service.js';
-import { createSession, validateSession, destroySession } from './services/auth/session.service.js';
+// Import updated modules (formerly services)
+import { getAppConfig, getFeatureFlags } from './modules/data/config.service.js';
+import { initiateGoogleOAuth, handleGoogleCallback } from './modules/auth/oauth.service.js';
+import { createSession, validateSession, destroySession } from './modules/auth/session.service.js';
 import { parseCookies } from './shared/utils/cookies.js';
 import { COOKIE_NAME } from './shared/constants.js';
 
@@ -25,19 +24,9 @@ const app = new Hono();
 // Global Middleware
 app.use('*', logger());
 
-// Data API (simulating edge)
-app.get('/data/app', async (c) => {
-    return c.json({
-        success: true,
-        data: {
-            name: 'Edge Minimal Stack',
-            version: '1.0.0',
-            status: 'operational',
-        },
-        timestamp: Date.now(),
-    });
-});
-
+/**
+ * Data API
+ */
 app.get('/data/config', async (c) => {
     try {
         const config = await getAppConfig();
@@ -46,13 +35,9 @@ app.get('/data/config', async (c) => {
             return acc;
         }, {} as Record<string, string>);
 
-        return c.json({
-            success: true,
-            data: configObj,
-            timestamp: Date.now(),
-        });
+        return c.json({ success: true, data: configObj, timestamp: Date.now() });
     } catch (error) {
-        return c.json({ success: false, error: 'Failed to fetch config', timestamp: Date.now() }, 500);
+        return c.json({ success: false, error: 'Failed' }, 500);
     }
 });
 
@@ -64,37 +49,19 @@ app.get('/data/flags', async (c) => {
             return acc;
         }, {} as Record<string, boolean>);
 
-        return c.json({
-            success: true,
-            data: flagsObj,
-            timestamp: Date.now(),
-        });
+        return c.json({ success: true, data: flagsObj, timestamp: Date.now() });
     } catch (error) {
-        return c.json({ success: false, error: 'Failed to fetch flags', timestamp: Date.now() }, 500);
+        return c.json({ success: false, error: 'Failed' }, 500);
     }
 });
 
-app.get('/data/ping', async (c) => {
-    return c.json({
-        success: true,
-        data: {
-            message: 'pong',
-            region: 'local',
-        },
-        timestamp: Date.now(),
-    });
-});
-
-// Auth API (simulating Node.js runtime)
+/**
+ * Auth API
+ */
 app.get('/auth/google', async (c) => {
-    try {
-        const { url, state } = initiateGoogleOAuth();
-
-        c.header('Set-Cookie', `oauth_state=${state}; Path=/; HttpOnly; Secure; SameSite=lax; Max-Age=600`);
-        return c.redirect(url, 302);
-    } catch (error) {
-        return c.json({ success: false, error: 'Failed to initiate OAuth', timestamp: Date.now() }, 500);
-    }
+    const { url, state } = initiateGoogleOAuth();
+    c.header('Set-Cookie', `oauth_state=${state}; Path=/; HttpOnly; Secure; SameSite=lax; Max-Age=600`);
+    return c.redirect(url, 302);
 });
 
 app.get('/auth/google/callback', async (c) => {
@@ -104,101 +71,44 @@ app.get('/auth/google/callback', async (c) => {
         const cookies = parseCookies(c.req.header('cookie') || '');
         const storedState = cookies['oauth_state'];
 
-        if (!state || !storedState || state !== storedState) {
-            return c.json({ success: false, error: 'Invalid state parameter', timestamp: Date.now() }, 400);
-        }
-
-        if (!code) {
-            return c.json({ success: false, error: 'Missing authorization code', timestamp: Date.now() }, 400);
+        if (!state || !storedState || state !== storedState || !code) {
+            return c.json({ success: false, error: 'Invalid OAuth flow' }, 400);
         }
 
         const user = await handleGoogleCallback(code);
-        const sessionCookie = createSession(user.id, user.email);
+        const sessionCookie = await createSession(user.id, user.email);
 
         const redirectUrl = process.env.ALLOWED_ORIGIN || 'http://localhost:3000';
         c.header('Set-Cookie', sessionCookie);
         return c.redirect(redirectUrl, 302);
     } catch (error) {
-        return c.json({ success: false, error: 'Authentication failed', timestamp: Date.now() }, 500);
+        return c.json({ success: false, error: 'Auth failed' }, 500);
     }
 });
 
 app.get('/auth/session', async (c) => {
-    try {
-        const cookies = parseCookies(c.req.header('cookie') || '');
-        const sessionCookie = cookies[COOKIE_NAME];
+    const cookies = parseCookies(c.req.header('cookie') || '');
+    const sessionCookie = cookies[COOKIE_NAME];
 
-        if (!sessionCookie) {
-            return c.json({ success: false, error: 'Not authenticated', timestamp: Date.now() }, 401);
-        }
+    if (!sessionCookie) return c.json({ success: false, error: 'No session' }, 401);
 
-        const session = validateSession(sessionCookie);
+    const session = await validateSession(sessionCookie);
+    if (!session) return c.json({ success: false, error: 'Invalid session' }, 401);
 
-        if (!session) {
-            return c.json({ success: false, error: 'Invalid or expired session', timestamp: Date.now() }, 401);
-        }
-
-        return c.json({
-            success: true,
-            data: {
-                userId: session.userId,
-                email: session.email,
-                expiresAt: session.expiresAt,
-            },
-            timestamp: Date.now(),
-        });
-    } catch (error) {
-        return c.json({ success: false, error: 'Session validation failed', timestamp: Date.now() }, 500);
-    }
+    return c.json({ success: true, data: session, timestamp: Date.now() });
 });
 
 app.post('/auth/logout', async (c) => {
     const destroyCookie = destroySession();
     c.header('Set-Cookie', destroyCookie);
-    return c.json({
-        success: true,
-        data: { message: 'Logged out successfully' },
-        timestamp: Date.now(),
-    });
+    return c.json({ success: true, data: { message: 'Logged out' } });
 });
 
-// Landing & Docs
-app.get('/', (c) => {
-    const html = readFileSync(join(__dirname, '../public/index.html'), 'utf-8');
-    return c.html(html);
-});
-
-app.get('/docs', (c) => {
-    const html = readFileSync(join(__dirname, '../public/docs.html'), 'utf-8');
-    return c.html(html);
-});
-
-// Health check
-app.get('/health', (c) => {
-    return c.json({
-        success: true,
-        data: {
-            message: 'Edge Minimal Stack - Dev Server',
-            mode: 'development',
-            endpoints: {
-                data: ['/data/app', '/data/config', '/data/flags', '/data/ping'],
-                auth: ['/auth/google', '/auth/google/callback', '/auth/session', '/auth/logout'],
-                pages: ['/', '/docs'],
-            },
-        },
-        timestamp: Date.now(),
-    });
-});
+// UI Routes
+app.get('/', (c) => c.html(readFileSync(join(__dirname, '../public/index.html'), 'utf-8')));
+app.get('/docs', (c) => c.html(readFileSync(join(__dirname, '../public/docs.html'), 'utf-8')));
 
 const port = Number(process.env.PORT) || 3000;
+serve({ fetch: app.fetch, port });
 
-console.log(`\n\x1b[32m[EdgeStack]\x1b[0m Dev Server is ready!`);
-console.log(`\x1b[34m[Local]\x1b[0m http://localhost:${port}`);
-console.log(`\x1b[34m[Docs]\x1b[0m http://localhost:${port}/docs`);
-console.log(`\n\x1b[33m[Mode]\x1b[0m Hot reload enabled (tsx)`);
-console.log(`\x1b[33m[Logs]\x1b[0m Request logging active\n`);
-
-serve({
-    fetch: app.fetch,
-    port,
-});
+console.log(`\x1b[32m[EdgeStack]\x1b[0m Dev server running on http://localhost:${port}`);
