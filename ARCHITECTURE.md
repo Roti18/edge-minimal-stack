@@ -31,16 +31,15 @@ Vercel supports two runtimes with different capabilities:
 | **Location** | Regional | Global edge |
 | **Cold start** | ~100-300ms | ~0ms |
 | **Max duration** | 60s | 30s |
-| **Node.js APIs** | Supported | Limited |
-| **Crypto** | Full | Web Crypto only |
+| **Node.js APIs** | Supported | Limited (Polyfilled) |
+| **Crypto** | Full | Web Crypto API only |
 | **Size limit** | 50MB | 1MB |
-| **Use case** | Auth, OAuth, heavy logic | Static data, caching |
+| **Use case** | Heavy Compute | **ENTIRE STACK** (Auth + Data) |
 
 **Runtime Assignment**:
 ```typescript
-// WRONG: Cannot be configured in vercel.json
-// RIGHT: Per-file export
-export const runtime = 'nodejs' | 'edge';
+// NOW: Switched to Edge for everything for zero cold start
+export const runtime = 'edge';
 ```
 
 ### 3. Stateless Sessions
@@ -85,104 +84,40 @@ Cache-Control: public, s-maxage=300, stale-while-revalidate=600
 
 ### 1. API Routes (`api/`)
 
-**Purpose**: HTTP entry points for Vercel
+**Purpose**: HTTP entry points for Vercel.
 
-**Responsibilities**:
-- Parse request (query, body, headers)
-- Validate input
-- Call service layer
-- Format response
-- Set headers (cache, cookies)
-- Handle errors
+**Standard Pattern**:
+All routes now use the **Unified Handler** for consistency.
 
-**Example**:
 ```typescript
-// api/data/config.ts
-export { runtime } from './_runtime'; // REQUIRED
-
-export async function GET(request: Request): Promise<Response> {
-  const config = await getAppConfig(); // Service layer
-  return jsonResponse(config, 200, {
-    'Cache-Control': 'public, s-maxage=300',
-  });
-}
+export const GET = createHandler({
+  rateLimit: { max: 100, windowMs: 60000 },
+  schema: { query: MyQuerySchema },
+  handler: async ({ query }) => { ... }
+});
 ```
 
-### 2. Services (`src/services/`)
+### 2. Core (`src/core/`)
 
-**Purpose**: Business logic (pure functions)
+**Purpose**: Universal logic & Middlewares.
+- `handler.ts`: The unified API wrapper.
+- `middleware.ts`: Cross-cutting concerns.
+- `validation.ts`: Zod schemas & helpers.
 
-**Responsibilities**:
-- Core business rules
-- Data transformation
-- Orchestration (call multiple infra layers)
-- Validation
+### 3. Modules (`src/modules/`)
 
-**Rules**:
-- No HTTP concerns (Request/Response)
-- No direct environment variables
-- Return plain data or throw errors
-- Unit-testable
-
-**Example**:
-```typescript
-// src/services/auth/oauth.service.ts
-export async function handleGoogleCallback(code: string): Promise<User> {
-  const token = await exchangeCodeForToken(code); // Infra
-  const profile = await fetchUserProfile(token.access_token); // Infra
-  const user = await upsertUser(profile); // Infra
-  return user;
-}
-```
-
-### 3. Domain (`src/domain/`)
-
-**Purpose**: Types, interfaces, entities
-
-**Responsibilities**:
-- Type definitions
-- Interfaces
-- Entity shapes
-- No logic
-
-**Example**:
-```typescript
-// src/domain/auth.ts
-export interface SessionData {
-  userId: string;
-  email: string;
-  issuedAt: number;
-  expiresAt: number;
-}
-```
+**Purpose**: Domain-specific business logic.
+- `auth/`: Session & OAuth logic.
+- `data/`: Configuration & Flags.
+- `media/`: File handling.
 
 ### 4. Infrastructure (`src/infra/`)
 
-**Purpose**: External integrations
-
-**Responsibilities**:
-- Database queries
-- Third-party APIs (OAuth, etc.)
-- Crypto operations
-- File system, network I/O
-
-**Subdirectories**:
-- `db/`: Database client & schema
-- `crypto/`: HMAC signing (Node.js only)
-- `oauth/`: OAuth providers
-- `rate-limit/`: Rate limiting
-
-**Example**:
-```typescript
-// src/infra/oauth/google.ts
-export async function exchangeCodeForToken(code: string): Promise<OAuthTokenResponse> {
-  const response = await fetch(GOOGLE_TOKEN_URL, {
-    method: 'POST',
-    body: new URLSearchParams({ code, /* ... */ }),
-  });
-  return response.json();
-}
-```
+**Purpose**: Driver Adapters.
+- `db/`: Turso SQLite.
+- `redis/`: Upstash Distributed Cache.
+- `config/`: Vercel Edge Config.
+- `crypto/`: Web Crypto HMAC.
 
 ### 5. Shared (`src/shared/`)
 
