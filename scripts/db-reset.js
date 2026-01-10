@@ -30,6 +30,6 @@ for (const file of filesToDelete) {
 
 // Reinitialize
 console.log('\nReinitializing database...');
-execSync('node scripts/db-init.js', { stdio: 'inherit' });
+execSync('bun scripts/db-init.js', { stdio: 'inherit' });
 
 console.log('\nDatabase reset complete!');
