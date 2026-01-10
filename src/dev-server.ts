@@ -4,7 +4,6 @@
 
 import { Hono } from 'hono';
 import { logger } from 'hono/logger';
-import { serve } from '@hono/node-server';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { fileURLToPath } from 'url';
@@ -36,8 +35,9 @@ app.get('/data/config', async (c) => {
         }, {} as Record<string, string>);
 
         return c.json({ success: true, data: configObj, timestamp: Date.now() });
-    } catch (error) {
-        return c.json({ success: false, error: 'Failed' }, 500);
+    } catch (error: any) {
+        console.error('[DevServer] Config Fetch Failed:', error.message, error);
+        return c.json({ success: false, error: 'Failed', message: error.message }, 500);
     }
 });
 
@@ -50,8 +50,9 @@ app.get('/data/flags', async (c) => {
         }, {} as Record<string, boolean>);
 
         return c.json({ success: true, data: flagsObj, timestamp: Date.now() });
-    } catch (error) {
-        return c.json({ success: false, error: 'Failed' }, 500);
+    } catch (error: any) {
+        console.error('[DevServer] Flags Fetch Failed:', error.message, error);
+        return c.json({ success: false, error: 'Failed', message: error.message }, 500);
     }
 });
 
@@ -109,6 +110,10 @@ app.get('/', (c) => c.html(readFileSync(join(__dirname, '../public/index.html'),
 app.get('/docs', (c) => c.html(readFileSync(join(__dirname, '../public/docs.html'), 'utf-8')));
 
 const port = Number(process.env.PORT) || 3000;
-serve({ fetch: app.fetch, port });
 
-console.log(`\x1b[32m[EdgeStack]\x1b[0m Dev server running on http://localhost:${port}`);
+console.log(`\x1b[32m[EdgeStack]\x1b[0m Bun server running on http://localhost:${port}`);
+
+export default {
+    port,
+    fetch: app.fetch,
+};
