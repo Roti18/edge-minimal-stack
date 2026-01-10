@@ -3,7 +3,7 @@
  * Applies schema to local database (idempotent)
  */
 
-import Database from 'better-sqlite3';
+import { Database } from 'bun:sqlite';
 import { readFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -13,7 +13,7 @@ const projectRoot = join(__dirname, '..');
 const dbPath = join(projectRoot, 'data', 'local.db');
 
 if (!existsSync(dbPath)) {
-    console.error('Database not found. Run: npm run db:init');
+    console.error('Database not found. Run: bun db:init');
     process.exit(1);
 }
 
@@ -30,16 +30,16 @@ const statements = schema
     .map(s => s.trim())
     .filter(s => s.length > 0);
 
-db.exec('BEGIN TRANSACTION');
+db.run('BEGIN TRANSACTION');
 
 try {
     for (const statement of statements) {
-        db.exec(statement);
+        db.run(statement);
     }
-    db.exec('COMMIT');
+    db.run('COMMIT');
     console.log('Schema migrated successfully');
 } catch (error) {
-    db.exec('ROLLBACK');
+    db.run('ROLLBACK');
     console.error('Migration error:', error);
     process.exit(1);
 }
