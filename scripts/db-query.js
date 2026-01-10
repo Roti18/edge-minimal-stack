@@ -1,26 +1,26 @@
 /**
  * Database Query Script
- * Opens interactive SQLite shell
+ * Opens interactive SQLite shell using bun:sqlite
  */
 
-import Database from 'better-sqlite3';
+import { Database } from 'bun:sqlite';
 import { existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import * as readline from 'readline';
+import * as接口readline from 'readline';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = join(__dirname, '..');
 const dbPath = join(projectRoot, 'data', 'local.db');
 
 if (!existsSync(dbPath)) {
-    console.error('Database not found. Run: npm run db:init');
+    console.error('Database not found. Run: bun db:init');
     process.exit(1);
 }
 
 const db = new Database(dbPath);
 
-console.log('SQLite Interactive Shell');
+console.log('Bun SQLite Interactive Shell');
 console.log(`   Database: ${dbPath}`);
 console.log('   Type SQL queries or .exit to quit\n');
 
@@ -42,7 +42,7 @@ rl.on('line', (line) => {
     }
 
     if (query === '.tables') {
-        const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
+        const tables = db.query("SELECT name FROM sqlite_master WHERE type='table'").all();
         console.log('Tables:', tables.map(t => t.name).join(', '));
         rl.prompt();
         return;
@@ -55,11 +55,11 @@ rl.on('line', (line) => {
 
     try {
         if (query.toLowerCase().startsWith('select')) {
-            const results = db.prepare(query).all();
+            const results = db.query(query).all();
             console.table(results);
         } else {
-            const result = db.prepare(query).run();
-            console.log(`${result.changes} row(s) affected`);
+            const result = db.run(query);
+            console.log(`Executed. Changes: ${result.changes}`);
         }
     } catch (error) {
         console.error('Error:', error.message);
