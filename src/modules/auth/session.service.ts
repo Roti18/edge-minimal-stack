@@ -34,11 +34,14 @@ export async function validateSession(cookieValue: string): Promise<SessionData 
     }
 
     // 2. Check blacklist (Global Revocation)
-    // We use a unique key per user + issue time or a session ID if added
-    const blacklistKey = `${REDIS_KEYS.SESSION_BLACKLIST}${session.userId}:${session.issuedAt}`;
-    const isBlacklisted = await redis.get(blacklistKey);
-    if (isBlacklisted) {
-        return null;
+    try {
+        const blacklistKey = `${REDIS_KEYS.SESSION_BLACKLIST}${session.userId}:${session.issuedAt}`;
+        const isBlacklisted = await redis.get(blacklistKey);
+        if (isBlacklisted) {
+            return null;
+        }
+    } catch (error) {
+        console.warn('[Session] Redis blacklist check failed, allowing session by default.');
     }
 
     return session;
@@ -48,11 +51,15 @@ export async function validateSession(cookieValue: string): Promise<SessionData 
  * Revoke a specific session globally
  */
 export async function revokeSession(session: SessionData): Promise<void> {
-    const blacklistKey = `${REDIS_KEYS.SESSION_BLACKLIST}${session.userId}:${session.issuedAt}`;
-    const ttl = Math.ceil((session.expiresAt - Date.now()) / 1000);
+    try {
+        const blacklistKey = `${REDIS_KEYS.SESSION_BLACKLIST}${session.userId}:${session.issuedAt}`;
+        const ttl = Math.ceil((session.expiresAt - Date.now()) / 1000);
 
-    if (ttl > 0) {
-        await redis.set(blacklistKey, '1', { ex: ttl });
+        if (ttl > 0) {
+            await redis.set(blacklistKey, '1', { ex: ttl });
+        }
+    } catch (error) {
+        console.error('[Session] Global revocation failed (Redis):', error);
     }
 }
 
