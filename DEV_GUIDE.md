@@ -11,7 +11,7 @@ npm run dev
 - Uses `tsx watch` for hot reload
 - Fast startup (~1-2s)
 - Direct TypeScript execution
-- All endpoints available at `http://localhost:3000`
+- All endpoints available with clean paths (e.g., `http://localhost:3000/auth/session`)
 - **Perfect for rapid iteration**
 
 #### 2. **Production Simulation**
@@ -76,11 +76,12 @@ npm run build
 - `GET  /auth/google/callback` - OAuth callback
 - `GET  /auth/session` - Check session
 - `POST /auth/logout` - Logout
+- `POST /auth/login` - Login check
 
-### Data API
-- `GET /data/app` - App metadata
+### Data & Media API
 - `GET /data/config` - Configuration
 - `GET /data/flags` - Feature flags
+- `GET /media/:id` - Media metadata
 
 ---
 
