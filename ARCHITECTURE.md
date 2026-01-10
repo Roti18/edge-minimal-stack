@@ -1,8 +1,4 @@
-# Architecture Documentation
-
-## Overview
-
-This backend boilerplate implements a **clean, layered architecture** optimized for **ultra-low latency** on Vercel's edge network with **dual runtime support**.
+This backend boilerplate implements a **clean, layered architecture** optimized for **ultra-low latency** on Vercel's edge network using the **Edge Runtime** exclusively.
 
 ## Core Principles
 
@@ -130,7 +126,7 @@ export const GET = createHandler({
 - Cookie helpers
 
 **Rules**:
-- Must work in both runtimes (unless explicitly Node.js only)
+- Must work in Edge Runtime
 - No business logic
 - Pure functions
 
@@ -180,32 +176,17 @@ export const GET = createHandler({
 
 ### Implementation
 
-In-memory Map with cleanup:
+Distributed Rate Limiting using **Upstash Redis**. This ensures consistency across all global Edge regions and survives isolate restarts.
 
 ```typescript
-Map<key, { count: number, resetAt: number }>
+// Uses Redis atomic INCR and PTTL
 ```
 
-**Cleanup**: Every 5 minutes, remove expired entries.
+### Benefits
 
-### Limitations
-
-> [!WARNING]
-> **This is NOT a distributed rate limiter.**
-
-**Edge Runtime**:
-- Per-isolate (not shared across regions)
-- Different users in different regions = different limits
-- Isolates can spawn/die unpredictably
-
-**Node.js Runtime**:
-- Per-instance
-- Resets on cold start
-- Multiple instances = separate counters
-
-**Conclusion**: Good for cost protection, NOT for strict security.
-
-**Alternative**: Use Vercel's built-in rate limiting or Upstash Redis.
+- **Global Consistency**: Same limit applied regardless of which Edge POP the user hits.
+- **Persistence**: survive isolate cold starts/deaths.
+- **Scalability**: Handled by Upstash's serverless Redis.
 
 ## Database Strategy
 
@@ -222,18 +203,18 @@ Map<key, { count: number, resetAt: number }>
 
 **Tables**:
 
-1. **`users`**: OAuth user profiles
-   - Minimal fields
-   - Index on email
-   - No sensitive data
+1.  **`users`**: OAuth user profiles
+    - Minimal fields
+    - Index on email
+    - No sensitive data
 
-2. **`app_config`**: Key-value configuration
-   - Type-aware (`string`, `number`, `boolean`, `json`)
-   - Single-row reads (indexed by `key`)
+2.  **`app_config`**: Key-value configuration
+    - Type-aware (`string`, `number`, `boolean`, `json`)
+    - Single-row reads (indexed by `key`)
 
-3. **`feature_flags`**: Feature toggles
-   - Boolean enabled/disabled
-   - Cache for 60 seconds
+3.  **`feature_flags`**: Feature toggles
+    - Boolean enabled/disabled
+    - Cache for 60 seconds
 
 **No `sessions` table**: We use stateless cookies.
 
@@ -307,23 +288,24 @@ User Request
     ↓
 Vercel Edge Network (CDN)
     ↓
-┌─────────────────┬─────────────────┐
-│   Auth API      │    Data API     │
-│  (Node.js)      │     (Edge)      │
-│  Regional       │    Global       │
-└────────┬────────┴────────┬────────┘
-         ↓                 ↓
-    Turso SQLite (Global)
+┌───────────────────────────────────┐
+│          Edge Runtime             │
+│   (Auth, Data, Media APIs)        │
+│          GLOBAL                   │
+└────────────────┬──────────────────┘
+        ┌────────┴────────┐
+        ↓                 ↓
+  Turso SQLite     Upstash Redis
+    (Global)         (Global)
 ```
 
 **Flow**:
-1. Request hits nearest edge POP
-2. CDN checks cache (for data endpoints)
-3. Cache miss → Route to function
-4. Auth: Regional Node.js instance
-5. Data: Edge function (global)
-6. DB: Turso (embedded, low latency)
-7. Response cached at CDN
+1. Request hits nearest edge POP.
+2. CDN checks cache (for GET endpoints).
+3. Cache miss → Route to Edge Function.
+4. Logic: Executes globally in Edge Runtime (Zero Cold Start).
+5. Data: Fetches from Turso (DB) or Upstash (Rate Limit/Cache).
+6. Response cached at CDN.
 
 ## Environment Variables
 
@@ -353,12 +335,12 @@ Vercel Edge Network (CDN)
 ### Stateless Sessions
 
 **Pros**: No DB writes, scalable  
-**Cons**: Cannot revoke before expiry
+**Cons**: Revocation requires Redis check (minimal overhead)
 
-### In-Memory Rate Limiting
+### Distributed Rate Limiting
 
-**Pros**: No external dependency, fast  
-**Cons**: Not globally consistent
+**Pros**: Globally consistent, persistent  
+**Cons**: Requires external Redis call (Upstash optimized for Edge)
 
 ### SQLite
 
