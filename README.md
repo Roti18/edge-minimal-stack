@@ -6,15 +6,20 @@ A **production-ready**, minimal backend boilerplate optimized for ultra-low late
 
 ## Features
 
-- **💡 100% Edge Runtime**: Auth, Data, and Media APIs all run on the Edge POPs for **Zero Cold Starts**.
-- **🛡️ Distributed Safety**: Rate limiting & Session Revocation via **Upstash Redis** (Global consistency).
-- **⚡ Ultra-fast Config**: Sub-ms reads for flags and maintenance mode via **Vercel Edge Config**.
-- **🏗️ Clean Architecture**: Modular folder structure (`core`, `modules`, `infra`) with a **Unified Handler**.
-- **🔐 Secure Sessions**: HMAC-signed cookies (Web Crypto API) with global session revocation.
-- **🚀 Type-safe Validation**: Automatic request validation using **Zod** in every rute.
-- **📉 Minimal Latency**: Turso SQLite + Upstash Redis both optimized for Edge environments.
+- **100% Edge Runtime**: Auth, Data, and Media APIs all run on the Edge POPs for **Zero Cold Starts**.
+- **Distributed Safety**: Rate limiting & Session Revocation via **Upstash Redis** (Global consistency).
+- **Ultra-fast Config**: Sub-ms reads for flags and maintenance mode via **Vercel Edge Config**.
+- **Clean Architecture**: Modular folder structure (`core`, `modules`, `infra`) with a **Unified Handler**.
+- **Secure Sessions**: HMAC-signed cookies (Web Crypto API) with global session revocation.
+- **Type-safe Validation**: Automatic request validation using **Zod** in every rute.
+- **Minimal Latency**: Turso SQLite + Upstash Redis both optimized for Edge environments.
 
-## 📁 Project Structure
+## Documentation
+
+- [Architecture Reference](./ARCHITECTURE.md) - Deep dive into the core principles.
+- [Development Guide](./DEV_GUIDE.md) - Commands, troubleshooting, and local setup.
+
+##  Project Structure
 
 ```
 edge-minimal-stack/
