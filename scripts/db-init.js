@@ -3,66 +3,53 @@
  * Creates local SQLite database and applies schema
  */
 
-import Database from 'better-sqlite3';
+import { Database } from 'bun:sqlite';
 import { readFileSync, mkdirSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 const projectRoot = join(__dirname, '..');
 
-// Ensure data directory exists
+// Pastikan direktori data ada
 const dataDir = join(projectRoot, 'data');
 if (!existsSync(dataDir)) {
     mkdirSync(dataDir, { recursive: true });
-    console.log('Created data/ directory');
 }
 
-// Create database file
 const dbPath = join(dataDir, 'local.db');
 const db = new Database(dbPath);
 
 console.log(`Initializing database at: ${dbPath}`);
 
-// Read and execute schema
+// Aktifkan WAL mode untuk performa maksimal (sesuai docs Bun)
+db.run("PRAGMA journal_mode = WAL;");
+
+// Baca schema dan eksekusi SEKALIGUS (Bun mendukung multi-query dalam .run)
 const schemaPath = join(projectRoot, 'src', 'infra', 'db', 'schema.sql');
 const schema = readFileSync(schemaPath, 'utf-8');
 
-// Split by semicolon and execute each statement
-const statements = schema
-    .split(';')
-    .map(s => s.trim())
-    .filter(s => s.length > 0);
-
-db.exec('BEGIN TRANSACTION');
-
 try {
-    for (const statement of statements) {
-        db.exec(statement);
-    }
-    db.exec('COMMIT');
-    console.log('Schema applied successfully');
+    db.run(schema);
+    console.log('✅ Schema applied successfully');
 } catch (error) {
-    db.exec('ROLLBACK');
-    console.error('Error applying schema:', error);
+    console.error('❌ Error applying schema:', error.message);
     process.exit(1);
 }
 
-// Verify tables
-const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
-console.log('Tables created:', tables.map(t => t.name).join(', '));
+// Verifikasi Tabel
+const tables = db.query("SELECT name FROM sqlite_master WHERE type='table'").all();
+console.log('Tables:', tables.map(t => t.name).join(', '));
 
-// Show row counts
-const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get();
-const configCount = db.prepare('SELECT COUNT(*) as count FROM app_config').get();
-const flagsCount = db.prepare('SELECT COUNT(*) as count FROM feature_flags').get();
-
-console.log(`\nDatabase initialized:`);
-console.log(`   Users: ${userCount.count}`);
-console.log(`   Config: ${configCount.count}`);
-console.log(`   Flags: ${flagsCount.count}`);
+// Cek Isi Data
+try {
+    const userCount = db.query('SELECT COUNT(*) as count FROM users').get();
+    const configCount = db.query('SELECT COUNT(*) as count FROM app_config').get();
+    console.log(`\nStats: ${userCount.count} Users, ${configCount.count} Config items.`);
+} catch (e) {
+    console.log('\nStats: No data yet.');
+}
 
 db.close();
-
-console.log('\nDatabase initialization complete!');
-console.log('   Run: npm run dev');
+console.log('\nDatabase initialization complete! 🚀');
