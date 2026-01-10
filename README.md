@@ -2,17 +2,17 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
-A **production-ready**, minimal backend boilerplate optimized for ultra-low latency on Vercel's edge network.
+A **production-ready**, minimal backend boilerplate optimized for ultra-low latency using **Bun** and **Edge Runtime** compatibility.
 
 ## Features
 
-- **100% Edge Runtime**: Auth, Data, and Media APIs all run on the Edge POPs for **Zero Cold Starts**.
+- **High-Performance Runtime**: Powered by **Bun** for near-instant startup and fast execution.
 - **Distributed Safety**: Rate limiting & Session Revocation via **Upstash Redis** (Global consistency).
-- **Ultra-fast Config**: Sub-ms reads for flags and maintenance mode via **Vercel Edge Config**.
+- **Ultra-fast Config**: Sub-ms reads for flags and maintenance mode via **Upstash Redis** (formerly Vercel Edge Config).
 - **Clean Architecture**: Modular folder structure (`core`, `modules`, `infra`) with a **Unified Handler**.
 - **Secure Sessions**: HMAC-signed cookies (Web Crypto API) with global session revocation.
-- **Type-safe Validation**: Automatic request validation using **Zod** in every rute.
-- **Minimal Latency**: Turso SQLite + Upstash Redis both optimized for Edge environments.
+- **Type-safe Validation**: Automatic request validation using **Zod** in every route.
+- **Minimal Latency**: Turso SQLite + Upstash Redis both optimized for Edge/Low-latency environments.
 
 ## Documentation
 
@@ -23,10 +23,10 @@ A **production-ready**, minimal backend boilerplate optimized for ultra-low late
 
 ```
 edge-minimal-stack/
-├── api/                    # Vercel entry points (Flat & Clean)
-│   ├── auth/              # Edge Runtime (OAuth, sessions)
-│   ├── data/              # Edge Runtime (cached data)
-│   └── media/             # Edge Runtime (media metadata)
+├── api/                    # Entry points (Serverless compatible)
+│   ├── auth/              # Auth logic (OAuth, sessions)
+│   ├── data/              # Data logic (cached data)
+│   └── media/             # Media logic (media metadata)
 ├── src/
 │   ├── core/              # Universal logic (Handler, Validation)
 │   ├── modules/           # Domain logic (formerly services)
@@ -34,15 +34,13 @@ edge-minimal-stack/
 │   │   ├── db/            # Turso SQLite client
 │   │   ├── redis/         # Upstash Redis client
 │   │   ├── crypto/        # Web Crypto HMAC signing
-│   │   ├── config/        # Vercel Edge Config
+│   │   ├── config/        # Global Config (Upstash Redis)
 │   │   └── oauth/         # Google OAuth provider
 │   └── shared/            # Utilities, schemas, & constants
 ├── public/                 # Static assets (Docs, Landing)
-├── vercel.json             # Deployment & Rewrites config
-└── .env.example
+├── .env.example
 ├── package.json
 ├── tsconfig.json
-├── vercel.json
 └── .env.example
 ```
 
@@ -51,7 +49,7 @@ edge-minimal-stack/
 ### 1. Install Dependencies
 
 ```bash
-npm install
+bun install
 ```
 
 ### 2. Set Up Environment
@@ -67,7 +65,6 @@ cp .env.example .env
 - `DATABASE_AUTH_TOKEN`: Turso auth token
 - `UPSTASH_REDIS_REST_URL`: Upstash REST URL
 - `UPSTASH_REDIS_REST_TOKEN`: Upstash REST token
-- `EDGE_CONFIG`: Vercel Edge Config connection string
 - `GOOGLE_CLIENT_ID`: Google OAuth client ID
 - `GOOGLE_CLIENT_SECRET`: Google OAuth client secret
 - `GOOGLE_REDIRECT_URI`: OAuth callback URL
@@ -76,28 +73,28 @@ cp .env.example .env
 
 ### 3. Initialize Database
 
-Run the schema against your Turso database:
+Run the schema against your local or Turso database:
 
 ```bash
-# Using Turso CLI
-turso db shell your-database < src/infra/db/schema.sql
+# Local development (automatically done by script)
+bun db:init
 
-# Or using libsql client
-npx @libsql/client --url $DATABASE_URL --auth-token $DATABASE_AUTH_TOKEN < src/infra/db/schema.sql
+# For Turso production
+turso db shell your-database < src/infra/db/schema.sql
 ```
 
 ### 4. Run Locally
 
 ```bash
-npm run dev
+bun run dev
 ```
 
 Visit `http://localhost:3000/api/auth/google` to test OAuth flow.
 
-### 5. Deploy to Vercel
+### 5. Build
 
 ```bash
-npm run deploy
+bun run build
 ```
 
 ## Authentication Flow
@@ -105,22 +102,22 @@ npm run deploy
 ```mermaid
 sequenceDiagram
     participant User
-    participant Edge POP (Vercel)
+    participant Bun Server
     participant Redis (Upstash)
     participant Google
     participant Turso DB
 
-    User->>Edge POP (Vercel): GET /auth/google (Zero Cold Start)
-    Edge POP (Vercel)->>User: Redirect to Google
+    User->>Bun Server: GET /auth/google (Instant Start)
+    Bun Server->>User: Redirect to Google
     User->>Google: Authorize
-    Google->>Edge POP (Vercel): GET /auth/google/callback
-    Edge POP (Vercel)->>Google: Exchange code
-    Edge POP (Vercel)->>Turso DB: Upsert user
-    Edge POP (Vercel)->>User: Set HMAC-signed Cookie
-    User->>Edge POP (Vercel): GET /data/config
-    Edge POP (Vercel)->>Redis (Upstash): Incr Rate Limit
-    Edge POP (Vercel)->>Redis (Upstash): Check Blacklist (Revocation)
-    Edge POP (Vercel)->>User: JSON Response (Cached)
+    Google->>Bun Server: GET /auth/google/callback
+    Bun Server->>Google: Exchange code
+    Bun Server->>Turso DB: Upsert user
+    Bun Server->>User: Set HMAC-signed Cookie
+    User->>Bun Server: GET /data/config
+    Bun Server->>Redis (Upstash): Incr Rate Limit
+    Bun Server->>Redis (Upstash): Check Blacklist (Revocation)
+    Bun Server->>User: JSON Response (Cached)
 ```
 
 **Key Security Features**:
@@ -147,22 +144,14 @@ sequenceDiagram
 | `GET` | `/data/flags` | Feature flags | 1 min |
 | `GET` | `/media/:id` | Media metadata | 10 min |
 
-## Edge Caching Strategy
+## Edge Logic & Caching Strategy
 
-All data endpoints return CDN cache headers:
+This boilerplate is designed to be **stateless** and **edge-ready**.
 
-```http
-Cache-Control: public, s-maxage=300, stale-while-revalidate=600
-```
-
-- **`s-maxage`**: CDN cache duration (varies by endpoint)
-- **`stale-while-revalidate`**: Serve stale while fetching fresh
-
-**Distributed Logic**: Powered by **Upstash Redis**, ensuring consistent limits across all global POPs.
-
-- **Storage**: < 1ms read/write from Edge logic.
-- **Fail-safe**: Logic falls open (success) if Redis is unreachable to avoid blocking users.
-- **Consistency**: Prevents brute-force even when Vercel scales horizontally.
+- **Bun Runtime**: Provides ultra-fast execution and native SQLite support.
+- **Upstash Redis**: Used for global configuration and rate limiting.
+- **Stateless Auth**: HMAC-signed cookies verified at the Edge.
+- **CDN Friendly**: Pure HTTP logic that works with standard cache headers.
 
 ## Architecture Principles
 
@@ -219,15 +208,14 @@ See [.env.example](.env.example) for all required variables.
 5. Set authorized redirect URI: `https://api.yourdomain.com/auth/google/callback`
 6. Copy client ID and secret to `.env`
 
-## Deployment Checklist
+### Deployment Checklist
 
-- [ ] Set environment variables in Vercel dashboard
-- [ ] Initialize Turso database with schema
+- [ ] Set environment variables in your hosting dashboard
+- [ ] Initialize database with `bun db:init`
 - [ ] Configure Google OAuth redirect URI
 - [ ] Generate secure `SESSION_SECRET` (32+ chars)
 - [ ] Set `ALLOWED_ORIGIN` to your frontend domain
-- [ ] Test OAuth flow locally with `vercel dev`
-- [ ] Deploy with `vercel --prod`
+- [ ] Test locally with `bun run dev`
 
 ## Use Cases
 

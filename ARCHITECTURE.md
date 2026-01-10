@@ -1,4 +1,4 @@
-This backend boilerplate implements a **clean, layered architecture** optimized for **ultra-low latency** on Vercel's edge network using the **Edge Runtime** exclusively.
+This backend boilerplate implements a **clean, layered architecture** optimized for **ultra-low latency** using the **Bun Runtime**.
 
 ## Core Principles
 
@@ -18,25 +18,13 @@ This backend boilerplate implements a **clean, layered architecture** optimized 
 
 **Rationale**: Keep cognitive overhead low, maintainability high, and bundle sizes minimal.
 
-### 2. Runtime Separation
+### 2. Runtime: Bun
 
-Vercel supports two runtimes with different capabilities:
+We use **Bun** for its extreme performance, built-in SQLite driver, and fast startup times.
 
-| Feature | Node.js Runtime | Edge Runtime |
-|---------|----------------|--------------|
-| **Location** | Regional | Global edge |
-| **Cold start** | ~100-300ms | ~0ms |
-| **Max duration** | 60s | 30s |
-| **Node.js APIs** | Supported | Limited (Polyfilled) |
-| **Crypto** | Full | Web Crypto API only |
-| **Size limit** | 50MB | 1MB |
-| **Use case** | Heavy Compute | **ENTIRE STACK** (Auth + Data) |
-
-**Runtime Assignment**:
-```typescript
-// NOW: Switched to Edge for everything for zero cold start
-export const runtime = 'edge';
-```
+- **Native Speed**: Bun's runtime is significantly faster than standard Node.js for many tasks.
+- **Built-in Tools**: No need for external TypeScript watchers (like `tsx`) as Bun handles TS natively.
+- **Unified Logic**: The same code runs locally and in production-optimized environments.
 
 ### 3. Stateless Sessions
 
@@ -60,21 +48,16 @@ export const runtime = 'edge';
 
 ### 4. Edge-First Caching
 
-Data endpoints leverage Vercel's CDN with explicit cache headers:
+Data endpoints return standard JSON responses with cache-control headers:
 
-```typescript
-Cache-Control: public, s-maxage=300, stale-while-revalidate=600
+```http
+Cache-Control: public, max-age=300
 ```
 
-**Why `s-maxage` instead of `max-age`?**
-- `s-maxage`: CDN/shared cache only
-- `max-age`: Browser cache
-- We want CDN caching without forcing client-side caching
-
-**Why `stale-while-revalidate`?**
-- Serve stale content immediately
-- Fetch fresh content in background
-- Better UX (no waiting)
+**Caching Logic**:
+- We prioritize CDN caching for public data.
+- User-specific data is never cached at the edge.
+- Bun's high performance reduces the need for aggressive server-side caching.
 
 ## Layer Responsibilities
 
@@ -112,7 +95,7 @@ export const GET = createHandler({
 **Purpose**: Driver Adapters.
 - `db/`: Turso SQLite.
 - `redis/`: Upstash Distributed Cache.
-- `config/`: Vercel Edge Config.
+- `config/`: Upstash Config (Global Settings).
 - `crypto/`: Web Crypto HMAC.
 
 ### 5. Shared (`src/shared/`)
@@ -281,31 +264,26 @@ Distributed Rate Limiting using **Upstash Redis**. This ensures consistency acro
 **Production**: Log to `console.error` (captured by Vercel)  
 **Development**: Full stack traces
 
-## Deployment Architecture
-
 ```
 User Request
     ↓
-Vercel Edge Network (CDN)
+Bun Server (Production)
     ↓
 ┌───────────────────────────────────┐
-│          Edge Runtime             │
+│           Bun Runtime             │
 │   (Auth, Data, Media APIs)        │
-│          GLOBAL                   │
 └────────────────┬──────────────────┘
         ┌────────┴────────┐
         ↓                 ↓
-  Turso SQLite     Upstash Redis
-    (Global)         (Global)
+   Turso SQLite      Upstash Redis
+     (Global)          (Global)
 ```
 
 **Flow**:
-1. Request hits nearest edge POP.
-2. CDN checks cache (for GET endpoints).
-3. Cache miss → Route to Edge Function.
-4. Logic: Executes globally in Edge Runtime (Zero Cold Start).
-5. Data: Fetches from Turso (DB) or Upstash (Rate Limit/Cache).
-6. Response cached at CDN.
+1. Request hits the server.
+2. Logic: Executes in Bun Runtime (Near-zero cold start).
+3. Data: Fetches from Turso (DB) or Upstash (Config/Rate Limit).
+4. Response: Returned as JSON.
 
 ## Environment Variables
 

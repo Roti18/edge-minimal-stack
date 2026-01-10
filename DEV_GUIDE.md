@@ -2,70 +2,38 @@
 
 ## Available Commands
 
-### Development Modes (Choose One)
-
-#### 1. **Quick Development** (Recommended)
+### Development Mode
 ```bash
-npm run dev
+bun run dev
 ```
-- Uses `tsx watch` for hot reload
-- Fast startup (~1-2s)
+- Uses `bun run --hot` for near-instant hot reload
+- Fast startup (<100ms)
 - Direct TypeScript execution
 - All endpoints available with clean paths (e.g., `http://localhost:3000/auth/session`)
 - **Perfect for rapid iteration**
 
-#### 2. **Production Simulation**
+### Database Management
 ```bash
-npm run vercel
-```
-- Uses Vercel CLI
-- Simulates actual Vercel runtime
-- Slower startup (~5-10s)
-- **Use before deploying to test runtime behavior**
+# Initialize local database (Run this first!)
+bun db:init
 
-### How to Restart `npm run vercel`
+# Reset database (deletes and recreates)
+bun db:reset
 
-If you made a config mistake:
+# Run migrations
+bun db:migrate
 
-```bash
-# Windows: Press Ctrl+C to stop
-Ctrl+C
-
-# Then restart
-npm run vercel
-```
-
-Or kill and restart in one command:
-```powershell
-# Kill any running Vercel process, then start fresh
-taskkill /F /IM node.exe /T 2>$null; npm run vercel
+# Interactive SQL Shell
+bun db:query
 ```
 
 ### Pre-Deployment Check
-
-Always run before deploying:
 ```bash
-npm run check
+bun run check
 ```
-
 This runs:
 1. TypeScript type check
-2. Security audit (production only)
-
----
-
-## Other Commands
-
-```bash
-# Type check only
-npm run type-check
-
-# Deploy to production
-npm run deploy
-
-# Build check (no output, just validation)
-npm run build
-```
+2. Production audit check
 
 ---
 
@@ -79,27 +47,24 @@ npm run build
 - `POST /auth/login` - Login check
 
 ### Data & Media API
-- `GET /data/config` - Configuration
-- `GET /data/flags` - Feature flags
+- `GET /data/config` - Configuration (from Upstash Redis)
+- `GET /data/flags` - Feature flags (from Upstash Redis)
 - `GET /media/:id` - Media metadata
 
 ---
 
 ## Troubleshooting
 
-### `npm run vercel` won't stop
-```powershell
-taskkill /F /IM node.exe /T
-```
-
 ### Port 3000 already in use
 ```powershell
-# Kill process on port 3000
+# Windows: Kill process on port 3000
 netstat -ano | findstr :3000
 taskkill /PID <PID> /F
 ```
 
-### Vercel CLI cache issues
+### Script Errors
+If you get "Module not found" errors, ensure you are using `bun` to run the scripts:
 ```bash
-vercel dev --force
+bun db:init
 ```
+Node.js will not work with these scripts as they use Bun-native APIs.
