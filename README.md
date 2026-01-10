@@ -6,41 +6,35 @@ A **production-ready**, minimal backend boilerplate optimized for ultra-low late
 
 ## Features
 
-- **Dual Runtime Support**: Node.js for auth, Edge for data
-- **Clean Architecture**: Layered, maintainable, no enterprise bloat
-- **Google OAuth 2.0**: Stateless session cookies with HMAC signing
-- **Edge Caching**: CDN-optimized data endpoints
-- **Rate Limiting**: Best-effort protection against abuse
-- **TypeScript**: Full type safety
-- **Turso SQLite**: Minimal database for config & metadata
-- **Free-tier Friendly**: Optimized for cost efficiency
+- **💡 100% Edge Runtime**: Auth, Data, and Media APIs all run on the Edge POPs for **Zero Cold Starts**.
+- **🛡️ Distributed Safety**: Rate limiting & Session Revocation via **Upstash Redis** (Global consistency).
+- **⚡ Ultra-fast Config**: Sub-ms reads for flags and maintenance mode via **Vercel Edge Config**.
+- **🏗️ Clean Architecture**: Modular folder structure (`core`, `modules`, `infra`) with a **Unified Handler**.
+- **🔐 Secure Sessions**: HMAC-signed cookies (Web Crypto API) with global session revocation.
+- **🚀 Type-safe Validation**: Automatic request validation using **Zod** in every rute.
+- **📉 Minimal Latency**: Turso SQLite + Upstash Redis both optimized for Edge environments.
 
 ## 📁 Project Structure
 
 ```
 edge-minimal-stack/
-├── api/                    # Vercel entry points
-│   ├── auth/              # Node.js runtime (OAuth, sessions)
-│   │   ├── _runtime.ts
-│   │   ├── login.ts
-│   │   ├── logout.ts
-│   │   ├── google.ts
-│   │   └── google/
-│   │       └── callback.ts
-│   └── data/              # Edge runtime (cached data)
-│       ├── _runtime.ts
-│       ├── app.ts
-│       ├── config.ts
-│       └── flags.ts
+├── api/                    # Vercel entry points (Flat & Clean)
+│   ├── auth/              # Edge Runtime (OAuth, sessions)
+│   ├── data/              # Edge Runtime (cached data)
+│   └── media/             # Edge Runtime (media metadata)
 ├── src/
-│   ├── domain/            # Types & entities
-│   ├── services/          # Business logic
-│   ├── infra/            # Infrastructure
-│   │   ├── db/           # Database client
-│   │   ├── crypto/       # HMAC signing
-│   │   ├── oauth/        # Google OAuth
-│   │   └── rate-limit/   # In-memory limiter
-│   └── shared/           # Utilities & constants
+│   ├── core/              # Universal logic (Handler, Validation)
+│   ├── modules/           # Domain logic (formerly services)
+│   ├── infra/             # Driver Adapters
+│   │   ├── db/            # Turso SQLite client
+│   │   ├── redis/         # Upstash Redis client
+│   │   ├── crypto/        # Web Crypto HMAC signing
+│   │   ├── config/        # Vercel Edge Config
+│   │   └── oauth/         # Google OAuth provider
+│   └── shared/            # Utilities, schemas, & constants
+├── public/                 # Static assets (Docs, Landing)
+├── vercel.json             # Deployment & Rewrites config
+└── .env.example
 ├── package.json
 ├── tsconfig.json
 ├── vercel.json
@@ -66,10 +60,14 @@ cp .env.example .env
 **Required variables**:
 - `DATABASE_URL`: Your Turso database URL
 - `DATABASE_AUTH_TOKEN`: Turso auth token
+- `UPSTASH_REDIS_REST_URL`: Upstash REST URL
+- `UPSTASH_REDIS_REST_TOKEN`: Upstash REST token
+- `EDGE_CONFIG`: Vercel Edge Config connection string
 - `GOOGLE_CLIENT_ID`: Google OAuth client ID
 - `GOOGLE_CLIENT_SECRET`: Google OAuth client secret
 - `GOOGLE_REDIRECT_URI`: OAuth callback URL
 - `SESSION_SECRET`: Random 32+ character string
+- `ALLOWED_ORIGIN`: Your frontend domain
 
 ### 3. Initialize Database
 
@@ -102,51 +100,47 @@ npm run deploy
 ```mermaid
 sequenceDiagram
     participant User
-    participant Auth API (Node.js)
+    participant Edge POP (Vercel)
+    participant Redis (Upstash)
     participant Google
-    participant Data API (Edge)
+    participant Turso DB
 
-    User->>Auth API (Node.js): GET /auth/google
-    Auth API (Node.js)->>Auth API (Node.js): Generate state (CSRF token)
-    Auth API (Node.js)->>User: Redirect to Google + state cookie
+    User->>Edge POP (Vercel): GET /auth/google (Zero Cold Start)
+    Edge POP (Vercel)->>User: Redirect to Google
     User->>Google: Authorize
-    Google->>Auth API (Node.js): GET /auth/google/callback?code=...&state=...
-    Auth API (Node.js)->>Auth API (Node.js): Validate state
-    Auth API (Node.js)->>Google: Exchange code for token
-    Google->>Auth API (Node.js): Access token + user info
-    Auth API (Node.js)->>Auth API (Node.js): Upsert user in DB
-    Auth API (Node.js)->>Auth API (Node.js): Create HMAC-signed session cookie
-    Auth API (Node.js)->>User: Redirect to app + session cookie
-    User->>Data API (Edge): GET /data/config (with cookie)
-    Data API (Edge)->>User: Cached response
+    Google->>Edge POP (Vercel): GET /auth/google/callback
+    Edge POP (Vercel)->>Google: Exchange code
+    Edge POP (Vercel)->>Turso DB: Upsert user
+    Edge POP (Vercel)->>User: Set HMAC-signed Cookie
+    User->>Edge POP (Vercel): GET /data/config
+    Edge POP (Vercel)->>Redis (Upstash): Incr Rate Limit
+    Edge POP (Vercel)->>Redis (Upstash): Check Blacklist (Revocation)
+    Edge POP (Vercel)->>User: JSON Response (Cached)
 ```
 
 **Key Security Features**:
 - `state` parameter for CSRF protection
 - HMAC-signed cookies (no tampering)
-- HttpOnly, Secure, SameSite cookies
-- No session database (stateless)
-- 7-day expiration
 
 ## API Endpoints
 
-### Auth API (Node.js Runtime)
+### Auth API (Edge Runtime)
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/auth/login` | Email/password login (placeholder) |
-| `POST` | `/auth/logout` | Destroy session |
-| `GET` | `/auth/google` | Initiate Google OAuth |
-| `GET` | `/auth/google/callback` | Handle OAuth callback |
-| `GET` | `/auth/session` | Validate current session |
+| Method | Path | Description | Rate Limit |
+|--------|------|-------------|------------|
+| `POST` | `/auth/login` | Email/password login | 10 req / 15m |
+| `POST` | `/auth/logout` | Destroy session | - |
+| `GET` | `/auth/google` | Initiate Google OAuth | - |
+| `GET` | `/auth/google/callback` | Handle OAuth callback | - |
+| `GET` | `/auth/session` | Validate current session | 100 req / 1m |
 
-### Data API (Edge Runtime)
+### Data & Media API (Edge Runtime)
 
 | Method | Path | Description | Cache |
 |--------|------|-------------|-------|
-| `GET` | `/data/app` | App metadata | 10 min |
 | `GET` | `/data/config` | App configuration | 5 min |
 | `GET` | `/data/flags` | Feature flags | 1 min |
+| `GET` | `/media/:id` | Media metadata | 10 min |
 
 ## Edge Caching Strategy
 
@@ -159,17 +153,11 @@ Cache-Control: public, s-maxage=300, stale-while-revalidate=600
 - **`s-maxage`**: CDN cache duration (varies by endpoint)
 - **`stale-while-revalidate`**: Serve stale while fetching fresh
 
-## Rate Limiting
+**Distributed Logic**: Powered by **Upstash Redis**, ensuring consistent limits across all global POPs.
 
-**Important**: Rate limiting is **best-effort only**, not globally consistent.
-
-- **Auth endpoints**: 10 requests / 15 minutes
-- **Data endpoints**: 100 requests / 1 minute
-
-**Limitations**:
-- Edge: Per-isolate, per-region
-- Node.js: Per-instance, resets on cold start
-- Purpose: Cost protection & basic abuse prevention
+- **Storage**: < 1ms read/write from Edge logic.
+- **Fail-safe**: Logic falls open (success) if Redis is unreachable to avoid blocking users.
+- **Consistency**: Prevents brute-force even when Vercel scales horizontally.
 
 ## Architecture Principles
 
@@ -192,12 +180,9 @@ export const runtime = 'nodejs';
 export { runtime } from './_runtime'; // Re-export
 ```
 
-### Session Management
-
-- **Stateless**: HMAC-signed cookies
-- **No database writes** on every request
-- **No refresh tokens** (simple 7-day session)
-- **Revocation**: Cookie expiry only
+#- **Stateless**: HMAC-signed cookies (Web Crypto API).
+- **Global Revocation**: Integrated with Redis for force-logout capability.
+- **Security Check**: Each request validates against a "revoked" list in Redis.
 
 ## Database Schema
 
